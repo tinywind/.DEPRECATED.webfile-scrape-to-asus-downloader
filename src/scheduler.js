@@ -115,22 +115,22 @@ class Scheduler {
    */
   _loadSkippedUrls() {
     try {
-      if (fs.existsSync(this.dbPath)) {
-        const data = fs.readFileSync(this.dbPath, 'utf8');
-        const urls = JSON.parse(data);
-        this.skippedUrls = new Set(urls);
-        console.log(`Loaded ${this.skippedUrls.size} skipped URLs from database.`);
-      } else {
-        console.log('No database file found. Creating empty database file.');
-        // Create directory if it doesn't exist
-        const dbDir = path.dirname(this.dbPath);
-        if (!fs.existsSync(dbDir)) {
-          fs.mkdirSync(dbDir, { recursive: true });
+      let data;
+      try {
+        data = fs.readFileSync(this.dbPath, 'utf8');
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        fs.mkdirSync(path.dirname(this.dbPath), {recursive: true});
+        try {
+          fs.writeFileSync(this.dbPath, '[]', {encoding: 'utf8', flag: 'wx'});
+          data = '[]';
+        } catch (creationError) {
+          if (creationError.code !== 'EEXIST') throw creationError;
+          data = fs.readFileSync(this.dbPath, 'utf8');
         }
-        // Create empty database file
-        fs.writeFileSync(this.dbPath, JSON.stringify([], null, 2), 'utf8');
-        console.log('Empty database file created.');
       }
+      this.skippedUrls = new Set(JSON.parse(data));
+      console.log(`Loaded ${this.skippedUrls.size} skipped URLs from database.`);
     } catch (error) {
       console.error('Error loading skipped URLs:', error.message);
     }

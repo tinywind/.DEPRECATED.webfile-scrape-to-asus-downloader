@@ -10,7 +10,7 @@
     }
   ],
   "asusDownloadMaster": {
-    "url": "http://router.asus.com:8081",
+    "url": "https://router.asus.com:8081",
     "user": "admin",
     "pwd": "admin",
     "requestTimeout": 30000,

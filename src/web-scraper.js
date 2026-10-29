@@ -1,11 +1,13 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const path = require('path');
+const {createHttpsAgent} = require('./tls');
 const fs = require('fs');
 
 class WebScraper {
   constructor(config) {
     this.config = config;
+    this.httpsAgent = createHttpsAgent(config.caFile);
   }
 
   /**
@@ -26,10 +28,7 @@ class WebScraper {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         },
-        // Add these options to handle SSL/TLS issues
-        httpsAgent: new (require('https').Agent)({
-          rejectUnauthorized: false // Ignore SSL certificate errors
-        }),
+        httpsAgent: this.httpsAgent,
         validateStatus: function (status) {
           return status >= 200 && status < 600; // Accept all status codes to handle them manually
         }
@@ -96,10 +95,7 @@ class WebScraper {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         },
-        // Add these options to handle SSL/TLS issues
-        httpsAgent: new (require('https').Agent)({
-          rejectUnauthorized: false // Ignore SSL certificate errors
-        }),
+        httpsAgent: this.httpsAgent,
         validateStatus: function (status) {
           return status >= 200 && status < 600; // Accept all status codes to handle them manually
         }
