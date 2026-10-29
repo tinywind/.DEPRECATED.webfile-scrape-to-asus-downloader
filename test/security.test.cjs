@@ -53,7 +53,7 @@ test('TLS, authentication and scheduler preserve security boundaries', async t =
         if (!url.pathname.startsWith('/missing-cookie')) {
           const cookie = crypto.randomBytes(32).toString('hex');
           cookies.push(cookie);
-          response.setHeader('Set-Cookie', `AuthByPasswd=${cookie}; Path=/; HttpOnly`);
+          response.setHeader('Set-Cookie', `AuthByPasswd=${cookie}; Path=/; HttpOnly; Secure`);
         }
         response.end('ok');
       } else if (url.pathname.includes('/downloadmaster/')
@@ -145,13 +145,20 @@ test('TLS, authentication and scheduler preserve security boundaries', async t =
     const database = path.join(root, 'race.json');
     const records = ['https://example.test/already-queued.zip'];
     fs.writeFileSync(database, JSON.stringify(records));
-    const originalExists = fs.existsSync;
-    fs.existsSync = file => file === database ? false : originalExists(file);
+    const originalRead = fs.readFileSync;
+    let firstRead = true;
+    fs.readFileSync = (file, ...args) => {
+      if (file === database && firstRead) {
+        firstRead = false;
+        throw Object.assign(new Error('database was missing before concurrent creation'), {code: 'ENOENT'});
+      }
+      return originalRead(file, ...args);
+    };
     let scheduler;
     try {
       scheduler = new Scheduler({interval: 1, runCount: 1, dbPath: database}, null, null);
     } finally {
-      fs.existsSync = originalExists;
+      fs.readFileSync = originalRead;
     }
     assert.deepEqual(JSON.parse(fs.readFileSync(database)), records);
     assert.deepEqual([...scheduler.skippedUrls], records);
