@@ -1,4 +1,4 @@
-FROM node:20
+FROM node:26-bookworm-slim
 
 WORKDIR /usr/src/app
 
@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci --omit=dev --ignore-scripts
 
 # Copy source code
 COPY src/ ./src/

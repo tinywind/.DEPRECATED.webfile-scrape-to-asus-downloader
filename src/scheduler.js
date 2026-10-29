@@ -128,7 +128,13 @@ class Scheduler {
           fs.mkdirSync(dbDir, { recursive: true });
         }
         // Create empty database file
-        fs.writeFileSync(this.dbPath, JSON.stringify([], null, 2), 'utf8');
+        try {
+          fs.writeFileSync(this.dbPath, JSON.stringify([], null, 2), {encoding: 'utf8', flag: 'wx'});
+        } catch (error) {
+          if (error.code !== 'EEXIST') throw error;
+          this.skippedUrls = new Set(JSON.parse(fs.readFileSync(this.dbPath, 'utf8')));
+          return;
+        }
         console.log('Empty database file created.');
       }
     } catch (error) {

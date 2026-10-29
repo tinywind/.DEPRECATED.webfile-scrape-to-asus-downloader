@@ -1,9 +1,11 @@
 const axios = require('axios');
 const FormData = require('form-data');
+const {createHttpsAgent} = require('./tls');
 
 class DownloadMaster {
   constructor(config) {
     this.config = config;
+    this.httpsAgent = createHttpsAgent(config.caFile);
     this.baseUrl = config.url;
     this.user = config.user;
     this.pwd = config.pwd;
@@ -14,6 +16,7 @@ class DownloadMaster {
 
   async login() {
     console.log('Logging in to ASUS Download Master...');
+    this.authCookie = null;
 
     // Only include the required parameters: login_username and login_passwd
     const formData = new URLSearchParams();
@@ -26,10 +29,7 @@ class DownloadMaster {
           'Content-Type': 'application/x-www-form-urlencoded'
         },
         timeout: this.dmTimeout,
-        // Add these options to handle SSL/TLS issues
-        httpsAgent: new (require('https').Agent)({
-          rejectUnauthorized: false // Ignore SSL certificate errors
-        }),
+        httpsAgent: this.httpsAgent,
         validateStatus: function (status) {
           return status >= 200 && status < 600; // Accept all status codes to handle them manually
         },
@@ -43,7 +43,7 @@ class DownloadMaster {
         for (const cookie of cookies) {
           if (cookie.startsWith('AuthByPasswd=')) {
             this.authCookie = cookie.split(';')[0].substring('AuthByPasswd='.length);
-            console.log(`Authentication cookie obtained: ${this.authCookie.substring(0, 20)}...`);
+            console.log('Authentication cookie obtained.');
             break;
           }
         }
@@ -53,7 +53,7 @@ class DownloadMaster {
         console.warn('No authentication cookie found in response');
       }
 
-      if (response.status >= 200 && response.status < 300) {
+      if (response.status >= 200 && response.status < 300 && this.authCookie) {
         console.log('Login successful');
         return true;
       } else {
@@ -193,10 +193,7 @@ class DownloadMaster {
 
       const requestOptions = {
         timeout: this.requestTimeout,
-        // Add these options to handle SSL/TLS issues
-        httpsAgent: new (require('https').Agent)({
-          rejectUnauthorized: false // Ignore SSL certificate errors
-        }),
+        httpsAgent: this.httpsAgent,
         validateStatus: function (status) {
           return status >= 200 && status < 600; // Accept all status codes to handle them manually
         },
@@ -223,7 +220,7 @@ class DownloadMaster {
             
             const retryResponse = await axios(url, requestOptions);
             console.log(`Retry response status: ${retryResponse.status}`);
-            return retryResponse;
+            return retryResponse.status >= 200 && retryResponse.status < 300 ? retryResponse : null;
           } catch (retryError) {
             console.error('Request failed after login retry:', retryError.message);
             return null;
@@ -234,12 +231,11 @@ class DownloadMaster {
         }
       }
 
-      return response;
+      return response.status >= 200 && response.status < 300 ? response : null;
     } catch (error) {
       console.error('Request failed:', error.message);
       if (error.response) {
         console.error('Response status:', error.response.status);
-        console.error('Response headers:', error.response.headers);
       }
       return null;
     }

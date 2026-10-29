@@ -250,3 +250,14 @@ const response = await this._makeRequest(`${this.baseUrl}/downloadmaster/dm_uplo
 - [asus-downloader-chrome](https://github.com/acc15/asus-downloader-chrome) - ASUS Download Master와 통신하는 기능
 
 두 프로젝트의 기능을 통합하여 웹 페이지에서 파일 링크를 자동으로 스크랩하고 ASUS Download Master로 다운로드하는 완전한 솔루션을 제공합니다.
+
+
+## Security checks
+
+Use a supported Node.js LTS release; the container now uses Node.js 26. The locked dependency installation uses `npm ci`.
+
+HTTPS requests use normal certificate and hostname verification. For a private or self-signed CA, set `asusDownloadMaster.caFile` to a local PEM CA bundle. Set top-level `caFile` separately when a scraped HTTPS site uses a private CA. These certificates are added to the built-in trust roots; hostname verification remains enabled.
+
+Login requires both a successful response and an authentication cookie. Authentication cookies and response header dumps are not logged. A failed queue response is not recorded as a successful download. Database creation is exclusive and preserves records created concurrently by another process.
+
+Run `npm test` for local HTTPS certificate, login, retry, torrent upload, deduplication, cookie logging, and database-race regressions. Tests use generated certificates and isolated files under `.tmp/`; OpenSSL is required to generate the test certificate. A prepared test-only certificate directory can be supplied through `TEST_CERT_DIR`. Docker validation uses an in-container loopback server with external networking disabled. No actual ASUS router or download service is contacted.
