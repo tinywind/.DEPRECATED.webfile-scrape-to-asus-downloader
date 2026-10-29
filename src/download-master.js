@@ -1,4 +1,5 @@
 const axios = require('axios');
+const {downloadMasterUrl} = require('./download-master-url');
 const FormData = require('form-data');
 const {createHttpsAgent} = require('./tls');
 
@@ -6,7 +7,7 @@ class DownloadMaster {
   constructor(config) {
     this.config = config;
     this.httpsAgent = createHttpsAgent(config.caFile);
-    this.baseUrl = config.url;
+    this.baseUrl = downloadMasterUrl(config);
     this.user = config.user;
     this.pwd = config.pwd;
     this.requestTimeout = config.requestTimeout || 30000;
@@ -29,6 +30,8 @@ class DownloadMaster {
           'Content-Type': 'application/x-www-form-urlencoded'
         },
         timeout: this.dmTimeout,
+        maxRedirects: 0,
+        proxy: false,
         httpsAgent: this.httpsAgent,
         validateStatus: function (status) {
           return status >= 200 && status < 600; // Accept all status codes to handle them manually
@@ -173,6 +176,7 @@ class DownloadMaster {
   }
 
   async _makeRequest(url, options = {}) {
+    if (new URL(url).origin !== new URL(this.baseUrl).origin) return null;
     // Check if we have an authentication cookie
     if (!this.authCookie) {
       // If no auth cookie, try to login first
@@ -198,6 +202,8 @@ class DownloadMaster {
           return status >= 200 && status < 600; // Accept all status codes to handle them manually
         },
         ...options,
+        maxRedirects: 0,
+        proxy: false,
         headers
       };
 

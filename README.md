@@ -31,7 +31,7 @@ npm install
     }
   ],
   "asusDownloadMaster": {
-    "url": "http://router.asus.com:8081",
+    "url": "https://router.asus.com:8081",
     "user": "admin",
     "pwd": "admin",
     "requestTimeout": 30000,
@@ -49,7 +49,7 @@ npm install
   - `url`: 스크랩할 웹 페이지 URL
   - `pattern`: 찾을 파일 링크 패턴 (정규식)
 - `asusDownloadMaster`: ASUS Download Master 설정
-  - `url`: ASUS Download Master URL (기본값: http://router.asus.com:8081)
+  - `url`: ASUS Download Master URL (기본값: https://router.asus.com:8081)
   - `user`: 라우터 관리자 사용자 이름
   - `pwd`: 라우터 관리자 비밀번호
   - `requestTimeout`: 요청 타임아웃 (밀리초)
@@ -157,14 +157,14 @@ Docker 설정에서는 다음 볼륨을 사용합니다:
 
 ## 요구 사항
 
-- Node.js 14.0 이상
+- Node.js 22, 24, or 26 and later supported releases
 - ASUS 라우터와 Download Master 설치 및 실행
 
 ## 문제 해결
 
 ### SSL/TLS 인증서 오류
 
-ASUS 라우터에 연결할 때 SSL/TLS 인증서 오류가 발생할 수 있습니다. 이 프로젝트는 자체 서명된 인증서나 유효하지 않은 인증서를 무시하도록 설정되어 있습니다.
+HTTPS certificate and hostname verification are enabled. Add the private CA with `asusDownloadMaster.caFile` when needed; see Security checks below.
 
 ### 세션 관리 및 인증
 
@@ -258,6 +258,8 @@ Use a supported Node.js LTS release; the container now uses Node.js 26. The lock
 
 HTTPS requests use normal certificate and hostname verification. For a private or self-signed CA, set `asusDownloadMaster.caFile` to a local PEM CA bundle. Set top-level `caFile` separately when a scraped HTTPS site uses a private CA. These certificates are added to the built-in trust roots; hostname verification remains enabled.
 
+ASUS connections require HTTPS by default. For a legacy device, explicitly set `asusDownloadMaster.allowInsecureLanHttp` to the boolean `true` and use a literal RFC 1918 IPv4 address, IPv4 loopback address, IPv6 unique-local address (`fc00::/7`), or IPv6 loopback (`::1`). For example: `"url": "http://192.168.1.1:8081", "allowInsecureLanHttp": true`. This opt-in sends credentials and cookies without encryption on that LAN connection. Hostnames and public IP addresses are rejected for this exception; URL credentials, queries, and fragments are always rejected. NAS requests connect directly and do not follow redirects, so credentials and cookies stay at the configured origin. Scraped public HTTP pages remain supported.
+
 Login requires both a successful response and an authentication cookie. Authentication cookies and response header dumps are not logged. A failed queue response is not recorded as a successful download. Database creation is exclusive and preserves records created concurrently by another process.
 
-Run `npm test` for local HTTPS certificate, login, retry, torrent upload, deduplication, cookie logging, and database-race regressions. Tests use generated certificates and isolated files under `.tmp/`; OpenSSL is required to generate the test certificate. A prepared test-only certificate directory can be supplied through `TEST_CERT_DIR`. Docker validation uses an in-container loopback server with external networking disabled. No actual ASUS router or download service is contacted.
+Run `npm test` for local HTTPS certificate, explicit LAN HTTP, redirect blocking, login, retry, torrent upload, deduplication, cookie logging, and database-race regressions. Tests use generated certificates and isolated files under `.tmp/`; OpenSSL is required to generate the test certificate. A prepared test-only certificate directory can be supplied through `TEST_CERT_DIR`. Docker validation uses an in-container loopback server with external networking disabled. No actual ASUS router or download service is contacted.
